@@ -1,0 +1,39 @@
+name: gpt-zero-to-hero
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - bzip2=1.0.8=h0d85af4_4
+  - ca-certificates=2022.12.7=h033912b_0
+  - cffi=1.15.1=py311ha86e640_3
+  - libblas=3.9.0=16_osx64_openblas
+  - libcblas=3.9.0=16_osx64_openblas
+  - libcxx=14.0.6=hccf4f1f_0
+  - libffi=3.4.2=h0d85af4_5
+  - libgfortran=5.0.0=11_3_0_h97931a8_27
+  - libgfortran5=11.3.0=h082f757_27
+  - liblapack=3.9.0=16_osx64_openblas
+  - libopenblas=0.3.21=openmp_h429af6e_3
+  - libprotobuf=3.21.12=hbc0c0cd_0
+  - libsqlite=3.40.0=ha978bb4_0
+  - libzlib=1.2.13=hfd90126_4
+  - llvm-openmp=15.0.7=h61d9ccf_0
+  - mkl=2022.2.1=h44ed08c_16952
+  - ncurses=6.3=h96cf925_1
+  - ninja=1.11.0=h1b54a9f_0
+  - numpy=1.24.1=py311h62c7003_0
+  - openssl=3.0.7=hfd90126_1
+  - pip=22.3.1=pyhd8ed1ab_0
+  - pycparser=2.21=pyhd8ed1ab_0
+  - python=3.11.0=he7542f4_1_cpython
+  - python_abi=3.11=3_cp311
+  - pytorch=1.13.1=cpu_py311h4129fe5_0
+  - readline=8.1.2=h3899abd_0
+  - setuptools=66.0.0=pyhd8ed1ab_0
+  - sleef=3.5.1=h6db0672_2
+  - tbb=2021.7.0=hb8565cd_1
+  - tk=8.6.12=h5dbffcc_0
+  - typing_extensions=4.4.0=pyha770c72_0
+  - tzdata=2022g=h191b570_0
+  - wheel=0.38.4=pyhd8ed1ab_0
+  - xz=5.2.6=h775f41a_0
