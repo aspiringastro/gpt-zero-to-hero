@@ -96,9 +96,12 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+        self.proj = nn.Linear(n_embd, n_embd)
 
     def forward(self, x):
-        return torch.cat([h(x) for h in self.heads], dim=-1) # concat over channel dimension
+        out = torch.cat([h(x) for h in self.heads], dim=-1) # concat over channel dimension
+        out = self.proj(out) # projection is a linear transformation of the outcome of the previous multi-head layer
+        return out
     
 class FeedForward(nn.Module):
     """ a simple linear layer of feedforward followed by non-linearity"""
@@ -106,14 +109,53 @@ class FeedForward(nn.Module):
     def __init__(self, n_embd):
         super().__init__()
         self.nn = nn.Sequential(
-            nn.Linear(n_embd, n_embd),
+            nn.Linear(n_embd, 4 * n_embd),
             nn.ReLU(),
+            nn.Linear(4 * n_embd, n_embd), # projection layer in FFwd
         )
 
     def forward(self, x):
         return self.nn(x)
     
+class Block(nn.Module):
+    """ Transformer Block: communication followed by computation """
 
+    def __init__(self, n_embd, n_head):
+        # n_embd : embedding dimension
+        # n_head : number of heads needed for multi-head self-attention
+        super().__init__()
+        assert n_embd % n_head == 0, f'n_embd {n_embd}, n_head: {n_head} must be a divisor'
+        head_size = n_embd // n_head
+        self.sa = MultiHeadAttention(n_head, head_size) # communication
+        self.ffwd = FeedForward(n_embd) # computation
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
+
+    def forward(self, x):
+        # No residual connections
+        # x = self.sa(x)
+        # x = self.ffwd(x)
+        # with residual connection
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
+
+        return x
+
+class LayerNorm1d:
+    
+    def __init__(self, dim, eps=1e-5):
+        self.eps = eps
+        self.beta = torch.zeros(dim)
+        self.gamma = torch.ones(dim)
+    
+    def __call__(self, x):
+        # forward pass
+        xmean = x.mean(1, keepdim=True) # batch mean
+        xvar = x.var(1, keepdim=True) # batch variance
+        xhat = (x - xmean) / torch.sqrt(xvar + self.eps)
+        self.out = self.gamma * xhat + self.beta
+        return self.out
+    
 # super simple bigram model
 class BigramLanguageModel(nn.Module):
 
@@ -122,8 +164,13 @@ class BigramLanguageModel(nn.Module):
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.sa_heads = MultiHeadAttention(4, n_embd//4) # 4 heads of 8-dim self-attention
-        self.ffwd = FeedForward(n_embd)
+        self.blocks = nn.Sequential(
+            Block(n_embd, n_head=4),
+            Block(n_embd, n_head=4),
+            Block(n_embd, n_head=4),
+            nn.LayerNorm(n_embd,)
+        )
+
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -132,8 +179,7 @@ class BigramLanguageModel(nn.Module):
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
         pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # T,C
         x = tok_emb + pos_emb  #(B,T,C)
-        x = self.sa_heads(x) # multi-head self-attention (B,T,C)
-        x = self.ffwd(x) #(B,T,C)
+        x = self.blocks(x)
         logits = self.lm_head(x) # (B, T, vocab_size)
 
         if targets is None:
@@ -149,7 +195,7 @@ class BigramLanguageModel(nn.Module):
     def generate(self, idx, max_new_tokens):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
-            # crop idx to the last batch_size tokens
+            # crop idx to the last block_size tokens
             idx_cond = idx[:, -block_size:]
             # get the predictions
             logits, loss = self(idx_cond)
@@ -174,7 +220,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 for iter in range(max_iters):
 
     # every once in a while evaluate the loss on train and val sets
-    if iter % eval_interval == 0:
+    if iter % eval_interval == 0 or iter == max_iters - 1:
         losses = estimate_loss()
         print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
