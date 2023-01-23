@@ -9,7 +9,7 @@ batch_size = 32 # how many independent sequences will we process in parallel?
 block_size = 8 # what is the maximum context length for predictions?
 max_iters = 5000
 eval_interval = 500
-learning_rate = 1e-3
+learning_rate = 5e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 n_embd = 32
@@ -141,21 +141,6 @@ class Block(nn.Module):
 
         return x
 
-class LayerNorm1d:
-    
-    def __init__(self, dim, eps=1e-5):
-        self.eps = eps
-        self.beta = torch.zeros(dim)
-        self.gamma = torch.ones(dim)
-    
-    def __call__(self, x):
-        # forward pass
-        xmean = x.mean(1, keepdim=True) # batch mean
-        xvar = x.var(1, keepdim=True) # batch variance
-        xhat = (x - xmean) / torch.sqrt(xvar + self.eps)
-        self.out = self.gamma * xhat + self.beta
-        return self.out
-    
 # super simple bigram model
 class BigramLanguageModel(nn.Module):
 
